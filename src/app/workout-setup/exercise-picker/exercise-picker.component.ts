@@ -1,14 +1,17 @@
-import { Component, computed, inject, input, model, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    input,
+    model,
+    signal,
+} from '@angular/core';
 import { FormValueControl } from '@angular/forms/signals';
 import { MatIconModule } from '@angular/material/icon';
-import {
-    capitalise,
-    equipmentPhrases,
-    Exercise,
-    isBuiltIn,
-    MUSCLE_LABELS,
-} from '../../models/exercise';
+import { capitalise, equipmentPhrases, Exercise, isBuiltIn, MUSCLE_LABELS } from '../../models/exercise';
 import { findByName, searchExercises } from '../../models/exercise-links';
+import { ExerciseListComponent } from '../../exercises/exercise-list.component';
 import { ExerciseStore } from '../../shared/state/exercise-store.service';
 
 /** One row of the list: an exercise to pick, or making a new one from what's typed. */
@@ -18,28 +21,15 @@ type PickerOption =
 
 let nextId = 0;
 
-/**
- * A step's name box that finds exercises as you type (EXR-2): a combobox whose list holds
- * the built-in exercises and your own that match (not hidden ones, unless their whole name
- * is typed), and "Make '…'" when no exercise has the
- * name typed. Picking an exercise fills in its name and links the step to it; typing drops
- * the link, so the step goes by its name again. Making one keeps the name, and the
- * exercise is made when the workout is saved (see `linkSteps()`), so nothing is left behind
- * if the workout isn't.
- *
- * Works with Signal Forms: bind the name with `[formField]` and the link with
- * `[(exerciseId)]`.
- */
 @Component({
     selector: 'app-exercise-picker',
-    imports: [MatIconModule],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    imports: [MatIconModule, ExerciseListComponent],
     templateUrl: './exercise-picker.component.html',
     styleUrl: './exercise-picker.component.scss',
 })
 export class ExercisePickerComponent implements FormValueControl<string> {
-    /** The step's name. */
     readonly value = model('');
-    /** The id of the exercise picked for the step, or '' if it goes by its name. */
     readonly exerciseId = model('');
     readonly inputId = input.required<string>();
     readonly placeholder = input('');
@@ -47,14 +37,13 @@ export class ExercisePickerComponent implements FormValueControl<string> {
 
     private readonly exercises = inject(ExerciseStore);
     protected readonly listId = `exercise-picker-${nextId++}`;
-
     protected readonly open = signal(false);
-    /** The option the arrow keys are on, or -1 for none. */
     protected readonly active = signal(-1);
+    protected readonly modalOpen = signal(false);
+    protected readonly isBuiltIn = isBuiltIn;
 
     protected readonly options = computed((): PickerOption[] => {
         const typed = this.value().trim();
-        // Hidden ones are left out, unless their name is typed in full
         const named = findByName(typed, this.exercises.exercises());
         const shown = this.exercises
             .exercises()
@@ -68,12 +57,11 @@ export class ExercisePickerComponent implements FormValueControl<string> {
             ? [...found, { kind: 'make', name: typed.replace(/\s+/g, ' ') }]
             : found;
     });
+
     protected readonly expanded = computed(() => this.open() && this.options().length > 0);
     protected readonly activeOptionId = computed(() =>
         this.expanded() && this.active() >= 0 ? this.optionId(this.active()) : null
     );
-
-    protected readonly isBuiltIn = isBuiltIn;
 
     protected optionId(index: number): string {
         return `${this.listId}-${index}`;
@@ -81,7 +69,6 @@ export class ExercisePickerComponent implements FormValueControl<string> {
 
     protected onInput(event: Event) {
         this.value.set((event.target as HTMLInputElement).value);
-        // Typed over, so the step goes by its name until something is picked
         this.exerciseId.set('');
         this.active.set(-1);
         this.open.set(true);
@@ -102,16 +89,15 @@ export class ExercisePickerComponent implements FormValueControl<string> {
                 this.active.update((i) => (i + by + count) % count);
                 return;
             }
-            case 'Enter':
-                // Picks the option the arrow keys are on, rather than submitting the form
+            case 'Enter': {
                 if (this.activeOptionId()) {
                     event.preventDefault();
                     this.choose(this.options()[this.active()]);
                 }
                 return;
+            }
             case 'Escape':
                 if (this.expanded()) {
-                    // Closes the list, not anything around it
                     event.preventDefault();
                     event.stopPropagation();
                     this.close();
@@ -134,6 +120,25 @@ export class ExercisePickerComponent implements FormValueControl<string> {
     protected close() {
         this.open.set(false);
         this.active.set(-1);
+    }
+
+    protected openModal() {
+        this.modalOpen.set(true);
+    }
+
+    protected closeModal() {
+        this.modalOpen.set(false);
+    }
+
+    protected pick(exercise: Exercise) {
+        this.value.set(exercise.name);
+        this.exerciseId.set(exercise.id);
+        this.closeModal();
+    }
+
+    protected clearSelection() {
+        this.value.set('');
+        this.exerciseId.set('');
     }
 }
 

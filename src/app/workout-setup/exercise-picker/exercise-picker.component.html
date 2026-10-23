@@ -1,21 +1,44 @@
-<!-- The list follows the input's focus (aria-activedescendant), so focus never leaves the box -->
-<input
-    class="picker-field__input"
-    role="combobox"
-    autocomplete="off"
-    aria-autocomplete="list"
-    [id]="inputId()"
-    [value]="value()"
-    [placeholder]="placeholder()"
-    [attr.aria-describedby]="describedBy() || null"
-    [attr.aria-expanded]="expanded()"
-    [attr.aria-controls]="listId"
-    [attr.aria-activedescendant]="activeOptionId()"
-    (input)="onInput($event)"
-    (keydown)="onKeydown($event)"
-    (blur)="close()"
-/>
-<!-- In the page all along, so aria-controls always points somewhere; hidden while closed -->
+<div class="exercise-picker__trigger">
+    <button
+        type="button"
+        class="exercise-picker__add"
+        [attr.aria-label]="value() ? 'Add another exercise' : 'Add exercise'"
+        (click)="openModal()"
+    >
+        <mat-icon aria-hidden="true">add</mat-icon>
+        <span>{{ value() ? 'Choose another' : 'Add exercise' }}</span>
+    </button>
+
+    @if (value()) {
+        <span class="exercise-picker__chosen" aria-live="polite">{{ value() }}</span>
+        <button
+            type="button"
+            class="exercise-picker__clear"
+            aria-label="Clear selected exercise"
+            (click)="clearSelection()"
+        >
+            <mat-icon aria-hidden="true">close</mat-icon>
+        </button>
+    }
+
+    <input
+        class="sr-only"
+        role="combobox"
+        autocomplete="off"
+        aria-autocomplete="list"
+        [id]="inputId()"
+        [value]="value()"
+        [placeholder]="placeholder()"
+        [attr.aria-describedby]="describedBy() || null"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-controls]="listId"
+        [attr.aria-activedescendant]="activeOptionId()"
+        (input)="onInput($event)"
+        (keydown)="onKeydown($event)"
+        (blur)="close()"
+    />
+</div>
+
 <ul
     class="exercise-picker__list"
     role="listbox"
@@ -24,7 +47,6 @@
     [hidden]="!expanded()"
 >
     @for (option of options(); track $index; let i = $index) {
-        <!-- mousedown would take focus from the box and close the list before the click lands -->
         <li
             class="exercise-picker__option"
             role="option"
@@ -61,3 +83,28 @@
         </li>
     }
 </ul>
+
+@if (modalOpen()) {
+    <div class="exercise-picker__backdrop" (click)="closeModal()">
+        <div
+            class="exercise-picker__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exercise-picker-modal-title"
+            (click)="$event.stopPropagation()"
+        >
+            <div class="exercise-picker__modal-head">
+                <h3 id="exercise-picker-modal-title">Choose exercise</h3>
+                <button type="button" class="exercise-picker__close" (click)="closeModal()">
+                    <mat-icon aria-hidden="true">close</mat-icon>
+                </button>
+            </div>
+
+            <app-exercise-list
+                [pickerMode]="true"
+                pickerActionLabel="Add"
+                (exercisePicked)="pick($event)"
+            />
+        </div>
+    </div>
+}

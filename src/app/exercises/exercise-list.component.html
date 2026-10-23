@@ -1,19 +1,21 @@
-<div class="flex justify-center">
+<div class="flex justify-center" [class.exercises--picker]="pickerMode()">
     <div
         class="m-4 w-full max-w-md rounded-xl border border-(--panel-border) bg-(--panel) p-5 shadow-xl shadow-(color:--shadow) backdrop-blur-sm"
     >
         <div class="exercises__top">
             <h2 class="exercises__title">Exercises</h2>
-            <button
-                type="button"
-                id="exercise-list-new"
-                class="btn-pill"
-                aria-label="New exercise"
-                (click)="drafting.set(true)"
-            >
-                <mat-icon aria-hidden="true">add</mat-icon>
-                New
-            </button>
+            @if (!pickerMode()) {
+                <button
+                    type="button"
+                    id="exercise-list-new"
+                    class="btn-pill"
+                    aria-label="New exercise"
+                    (click)="drafting.set(true)"
+                >
+                    <mat-icon aria-hidden="true">add</mat-icon>
+                    New
+                </button>
+            }
         </div>
 
         <label class="picker-field exercises__search" for="exercise-search">
@@ -168,49 +170,99 @@
 </div>
 
 <ng-template #cardTemplate let-item>
-    <li>
-        <a class="exercise-card" [routerLink]="item.path" [queryParams]="item.queryParams">
-            <span class="exercise-card__text">
-                <span class="exercise-card__name">
-                    {{ item.exercise.name }}
-                    @if (item.own) {
-                        <span class="exercise-card__tag">Your own</span>
-                    }
-                </span>
-                @if (item.otherName) {
-                    <span class="exercise-card__also">Also called {{ item.otherName }}</span>
-                }
-                <span class="exercise-card__details">
-                    @for (label of item.mainMuscles; track label) {
-                        <span class="exercise-card__muscle">{{ label }}</span>
-                    }
-                    @if (item.equipment) {
-                        <span class="exercise-card__equipment">{{ item.equipment }}</span>
-                    }
-                </span>
-                @if (item.progress; as progress) {
-                    <span class="exercise-card__progress">
-                        <span>
-                            <span class="exercise-card__progress-label">Latest</span>&ngsp;
-                            <span aria-hidden="true">{{ progress.latest }}</span>
-                            <span class="sr-only">{{ progress.latestSpoken }}</span>
-                            · {{ progress.latestAt | date: progress.dateFormat }}
-                        </span>
-                        @if (progress.best) {
-                            <span>
-                                <span class="exercise-card__progress-label">Best</span>&ngsp;
-                                {{ progress.best }}
-                            </span>
+    <li [attr.data-exercise-option]="pickerMode() ? '' : null">
+        @if (pickerMode()) {
+            <div class="exercise-card exercise-card--picker">
+                <span class="exercise-card__text">
+                    <span class="exercise-card__name">
+                        {{ item.exercise.name }}
+                        @if (item.own) {
+                            <span class="exercise-card__tag">Your own</span>
                         }
                     </span>
-                }
-            </span>
-            <mat-icon class="exercise-card__chevron" aria-hidden="true">chevron_right</mat-icon>
-        </a>
+                    @if (item.otherName) {
+                        <span class="exercise-card__also">Also called {{ item.otherName }}</span>
+                    }
+                    <span class="exercise-card__details">
+                        @for (label of item.mainMuscles; track label) {
+                            <span class="exercise-card__muscle">{{ label }}</span>
+                        }
+                        @if (item.equipment) {
+                            <span class="exercise-card__equipment">{{ item.equipment }}</span>
+                        }
+                    </span>
+                    @if (item.progress; as progress) {
+                        <span class="exercise-card__progress">
+                            <span>
+                                <span class="exercise-card__progress-label">Latest</span>&ngsp;
+                                <span aria-hidden="true">{{ progress.latest }}</span>
+                                <span class="sr-only">{{ progress.latestSpoken }}</span>
+                                · {{ progress.latestAt | date: progress.dateFormat }}
+                            </span>
+                            @if (progress.best) {
+                                <span>
+                                    <span class="exercise-card__progress-label">Best</span>&ngsp;
+                                    {{ progress.best }}
+                                </span>
+                            }
+                        </span>
+                    }
+                </span>
+                <button
+                    type="button"
+                    class="btn-pill exercise-card__pick"
+                    data-add-exercise
+                    [attr.aria-label]="pickerActionLabel() + ' ' + item.exercise.name"
+                    (click)="pickExercise(item.exercise)"
+                >
+                    {{ pickerActionLabel() }}
+                    <mat-icon aria-hidden="true">chevron_right</mat-icon>
+                </button>
+            </div>
+        } @else {
+            <a class="exercise-card" [routerLink]="item.path" [queryParams]="item.queryParams">
+                <span class="exercise-card__text">
+                    <span class="exercise-card__name">
+                        {{ item.exercise.name }}
+                        @if (item.own) {
+                            <span class="exercise-card__tag">Your own</span>
+                        }
+                    </span>
+                    @if (item.otherName) {
+                        <span class="exercise-card__also">Also called {{ item.otherName }}</span>
+                    }
+                    <span class="exercise-card__details">
+                        @for (label of item.mainMuscles; track label) {
+                            <span class="exercise-card__muscle">{{ label }}</span>
+                        }
+                        @if (item.equipment) {
+                            <span class="exercise-card__equipment">{{ item.equipment }}</span>
+                        }
+                    </span>
+                    @if (item.progress; as progress) {
+                        <span class="exercise-card__progress">
+                            <span>
+                                <span class="exercise-card__progress-label">Latest</span>&ngsp;
+                                <span aria-hidden="true">{{ progress.latest }}</span>
+                                <span class="sr-only">{{ progress.latestSpoken }}</span>
+                                · {{ progress.latestAt | date: progress.dateFormat }}
+                            </span>
+                            @if (progress.best) {
+                                <span>
+                                    <span class="exercise-card__progress-label">Best</span>&ngsp;
+                                    {{ progress.best }}
+                                </span>
+                            }
+                        </span>
+                    }
+                </span>
+                <mat-icon class="exercise-card__chevron" aria-hidden="true">chevron_right</mat-icon>
+            </a>
+        }
     </li>
 </ng-template>
 
-@if (drafting()) {
+@if (!pickerMode() && drafting()) {
     <app-exercise-editor
         [exercise]="draft"
         [isNew]="true"

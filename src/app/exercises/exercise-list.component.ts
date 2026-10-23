@@ -1,5 +1,13 @@
 import { DatePipe, NgTemplateOutlet } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    input,
+    output,
+    signal,
+} from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ExerciseEditorComponent } from '../shared/components/exercise-editor/exercise-editor.component';
@@ -67,6 +75,7 @@ const MUSCLES = Object.keys(MUSCLE_LABELS) as MuscleGroup[];
  */
 @Component({
     selector: 'app-exercise-list',
+    changeDetection: ChangeDetectionStrategy.OnPush,
     imports: [
         DatePipe,
         MatIconModule,
@@ -80,6 +89,10 @@ const MUSCLES = Object.keys(MUSCLE_LABELS) as MuscleGroup[];
     styleUrl: './exercise-list.component.scss',
 })
 export class ExerciseListComponent {
+        readonly pickerMode = input(false);
+        readonly pickerActionLabel = input('Add');
+        readonly exercisePicked = output<Exercise>();
+
     private readonly exercises = inject(ExerciseStore);
     private readonly settings = inject(SettingsStore);
     private readonly history = inject(HistoryStore);
@@ -191,6 +204,9 @@ export class ExerciseListComponent {
 
     private setMuscles(next: MuscleGroup[]) {
         this.selectedMuscles.set(next);
+        if (this.pickerMode()) {
+            return;
+        }
         void this.router.navigate([], {
             relativeTo: this.route,
             queryParams: { muscles: serialiseMusclesParam(next) },
@@ -229,6 +245,10 @@ export class ExerciseListComponent {
     protected closeDraft() {
         this.drafting.set(false);
         document.getElementById('exercise-list-new')?.focus();
+    }
+
+    protected pickExercise(exercise: Exercise) {
+        this.exercisePicked.emit(exercise);
     }
 }
 
