@@ -2,6 +2,17 @@
     display: block;
 }
 
+.exercises--picker {
+    .exercise-card {
+        align-items: flex-start;
+    }
+
+    > div {
+        background: rgb(10 12 16);
+        backdrop-filter: none;
+    }
+}
+
 .exercises__top {
     display: flex;
     align-items: center;
@@ -230,6 +241,17 @@
         outline: 2px solid var(--accent);
         outline-offset: 2px;
     }
+}
+
+.exercise-card--picker {
+    align-items: center;
+}
+
+.exercise-card__pick {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: 0.2rem;
 }
 
 .exercise-card__text {
